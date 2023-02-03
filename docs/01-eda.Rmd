@@ -1,0 +1,162 @@
+---
+title: 'Exploratory Data Analysis'
+author: 'Morris M. F. Chan'
+output:
+  github_ddocument:
+    toc: TRUE
+---
+
+# Exploratory Data Analysis
+
+## General
+
+### Importing packages and data
+```{r}
+library( tidyverse)
+library( cowplot)
+df_1991 = read_csv( '../data/foia-504-fy1991-fy2009-asof-221231.csv')
+df_2010 = read_csv( '../data/foia-504-fy2010-present-asof-221231.csv')
+df = rbind( df_1991, df_2010)
+df <- df |>
+    select(
+    'Program', 'BorrCity', 'BorrState', 'CDC_State', 'ThirdPartyLender_State',  
+    'ApprovalFiscalYear', 'DeliveryMethod', 'NaicsCode', 'NaicsDescription', 
+    'FranchiseCode', 'FranchiseName', 'ProjectState', 'BusinessType', 'BusinessAge', 'LoanStatus',
+    'ThirdPartyDollars', 'GrossApproval', 'TermInMonths', 'GrossChargeOffAmount', 'JobsSupported'
+)
+```
+
+```{r}
+for (i in names( df)){
+    if ( class( df[[ i]]) == 'character'){
+        print( paste( i, length( levels( as.factor( df[[ i]])))))
+    }
+}
+```
+
+```{r}
+for ( i in c( 'Program', 'ApprovalFiscalYear')){ # Categorical variables that are not parsed as characters.
+    print( paste( i, length( levels( as.factor( df[[ i]])))))
+}
+```
+
+The feature `Program` is completely useless as it only has one class. This variable will be removed from the data frame.
+
+It is quite weird that number of `NaicsDescrption` and `NaicsCode` do not match. Also the case with `FranchiseName` and `FranchiseCode`.
+
+```{r}
+df <- df |>
+    select( -Program) |>
+    mutate( ApprovalFiscalYear = as.factor( ApprovalFiscalYear)) |>
+    mutate_if( is.character, as.factor)
+```
+
+We first inspect the target variable of interest.
+
+```{r}
+df |>
+    group_by( LoanStatus) |>
+    summarise( Count = n()) |>
+    arrange( desc( Count))
+```
+
+While our major goal is to predict risks of specific loans, we are more interested in loans that were either Paid in Full (`PIF`) or Charge Off (`CHGOFF`). Loans that were not approved (`NOT FUNDED`) have not risk components. Loans that are excepted (`EXEMPT`) or cancelled (`CANCLD`) are eseentially censored data which we do not know whether the loans would be paid if they had not been exempted/cancelled. Thus, we only include observations that are either Paid in Full (`PIF`) or Charge Off (`CHGOFF`).
+
+```{r}
+df <- df |>
+    filter( (LoanStatus=='PIF') | (LoanStatus=='CHGOFF'))
+```    
+
+To maintain scientisfic robustness and prevent data leakge, only the training data set after splitting is visually inspected here. Data splitting is performed with `src/01-data-splitting.py`.
+
+```{r}
+df <- read_csv( '../data/train.csv')
+```
+
+## Individual Variables
+
+This section examines the distribution of each indiviudal variables and their associations with the status of the loans.
+
+```{r}
+options(repr.plot.width=7, repr.plot.height=3)
+count_plot <- function( column, data, title, lab, cat_on_x = TRUE){
+    data |>
+        ggplot() + {
+        if (cat_on_x==TRUE)
+            aes( x = {{column}})
+        else 
+            aes( y = {{column}})
+        } +
+        geom_bar() +
+        labs( title = title, x = lab, y = 'Count')
+}
+```
+
+```{r}
+# Adding new columns to facilitate data wrangling
+df <- df |>
+    mutate( pif = case_when( LoanStatus == 'PIF' ~ 1,
+                            TRUE ~ 0),
+            chgoff = case_when( LoanStatus == 'CHGOFF' ~ 1,
+                                TRUE ~ 0)
+    )
+```
+
+### LoanStatus
+
+```{r}
+count_plot( LoanStatus, df, title = 'Distribution of Loan Status', lab = 'Loan Status')
+```
+
+There is serious class imbalance between 2 classes of loan status. It should be handled with cautious when building and evaluating the relevant machine learning models.
+
+### BorrState
+
+```{r}
+library(usmap)
+
+state_plot <- function( state_column, data, title = '% of Charge-Off Loans'){
+    state_df <- data |>
+        mutate( state = {{ state_column}}) |>
+        group_by( state) |>
+        summarise( chgoff_percentage = round( sum( chgoff) / ( sum( chgoff) + sum( pif)) * 100, 2))
+    
+    plot_usmap( data = state_df, values = 'chgoff_percentage', color = 'gray') +
+        scale_fill_continuous(
+            low = "White", high = "Red", name = "% of Charged-off Loans"
+        ) +
+        theme(legend.position = "right") +
+        labs( title = title)
+}
+
+state_count_plot <- function( state_column, data, title = 'Number of Occurence in each State'){
+    state_df <- data |>
+        mutate( state = {{ state_column}}) |>
+        group_by( state) |>
+        summarise( n = n())
+    
+    plot_usmap( data = state_df, values = 'n', color = 'gray') +
+        scale_fill_continuous(
+            low = "white", high = "blue", name = "Count"
+        ) +
+        theme(legend.position = "right") +
+        labs( title = title)
+}
+```
+
+```{r}
+options(repr.plot.width=7, repr.plot.height=5)
+count_ <- state_count_plot( BorrState, df, title = 'Number of Borrowers in each States')
+percentage_ <- state_plot( BorrState, df, title = '% of Charge-Off Loans based on States of Borrowers')
+plot_grid( count_, percentage_, ncol = 1)
+```
+
+While it is visually significant that loans in some states are more probable to be charged off, it should be noted that most of the loans are associated with business in California. Some states with high percentage of charged-off loans (e.g., Mississippi) are with small sample sizes. The observed high risk of loans may not be a robust measurement because of the large variance in the sampling process.
+
+
+
+
+
+
+
+
