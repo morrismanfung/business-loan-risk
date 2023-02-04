@@ -340,7 +340,6 @@ charged-off risk of future loans.
 -   `NaicsCode` (with NAICS sectors extracted)
 -   `FranchiseCode` (as a binary variable of whether the loan is
     associated with a franchise)
--   `BusinessType`
 -   `BusinessAge`
 -   `ThirdPartyDollar`
 -   `TermInMonths`
