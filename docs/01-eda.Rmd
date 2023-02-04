@@ -2,7 +2,7 @@
 title: 'Exploratory Data Analysis'
 author: 'Morris M. F. Chan'
 output:
-  github_ddocument:
+  github_document:
     toc: TRUE
 ---
 
@@ -11,7 +11,8 @@ output:
 ## General
 
 ### Importing packages and data
-```{r}
+
+```{r, message = FALSE}
 library( tidyverse)
 library( cowplot)
 df_1991 = read_csv( '../data/foia-504-fy1991-fy2009-asof-221231.csv')
@@ -26,7 +27,7 @@ df <- df |>
 )
 ```
 
-```{r}
+```{r, echo = FALSE}
 for (i in names( df)){
     if ( class( df[[ i]]) == 'character'){
         print( paste( i, length( levels( as.factor( df[[ i]])))))
@@ -34,7 +35,7 @@ for (i in names( df)){
 }
 ```
 
-```{r}
+```{r, echo = FALSE}
 for ( i in c( 'Program', 'ApprovalFiscalYear')){ # Categorical variables that are not parsed as characters.
     print( paste( i, length( levels( as.factor( df[[ i]])))))
 }
@@ -44,7 +45,7 @@ The feature `Program` is completely useless as it only has one class. This varia
 
 It is quite weird that number of `NaicsDescrption` and `NaicsCode` do not match. Also the case with `FranchiseName` and `FranchiseCode`.
 
-```{r}
+```{r, echo = FALSE}
 df <- df |>
     select( -Program) |>
     mutate( ApprovalFiscalYear = as.factor( ApprovalFiscalYear)) |>
@@ -53,7 +54,7 @@ df <- df |>
 
 We first inspect the target variable of interest.
 
-```{r}
+```{r, echo = FALSE}
 df |>
     group_by( LoanStatus) |>
     summarise( Count = n()) |>
@@ -62,14 +63,14 @@ df |>
 
 While our major goal is to predict risks of specific loans, we are more interested in loans that were either Paid in Full (`PIF`) or Charge Off (`CHGOFF`). Loans that were not approved (`NOT FUNDED`) have not risk components. Loans that are excepted (`EXEMPT`) or cancelled (`CANCLD`) are eseentially censored data which we do not know whether the loans would be paid if they had not been exempted/cancelled. Thus, we only include observations that are either Paid in Full (`PIF`) or Charge Off (`CHGOFF`).
 
-```{r}
+```{r, echo = FALSE}
 df <- df |>
     filter( (LoanStatus=='PIF') | (LoanStatus=='CHGOFF'))
-```    
+```
 
 To maintain scientisfic robustness and prevent data leakge, only the training data set after splitting is visually inspected here. Data splitting is performed with `src/01-data-splitting.py`.
 
-```{r}
+```{r, echo = FALSE}
 df <- read_csv( '../data/train.csv')
 ```
 
@@ -77,7 +78,7 @@ df <- read_csv( '../data/train.csv')
 
 This section examines the distribution of each indiviudal variables and their associations with the status of the loans.
 
-```{r}
+```{r, echo = FALSE}
 options(repr.plot.width=7, repr.plot.height=3)
 count_plot <- function( column, data, title, lab, cat_on_x = TRUE){
     data |>
@@ -92,7 +93,7 @@ count_plot <- function( column, data, title, lab, cat_on_x = TRUE){
 }
 ```
 
-```{r}
+```{r, echo = FALSE}
 # Adding new columns to facilitate data wrangling
 df <- df |>
     mutate( pif = case_when( LoanStatus == 'PIF' ~ 1,
@@ -102,17 +103,17 @@ df <- df |>
     )
 ```
 
-### LoanStatus
+### `LoanStatus`
 
-```{r}
+```{r, echo = FALSE}
 count_plot( LoanStatus, df, title = 'Distribution of Loan Status', lab = 'Loan Status')
 ```
 
 There is serious class imbalance between 2 classes of loan status. It should be handled with cautious when building and evaluating the relevant machine learning models.
 
-### BorrState
+### `BorrState`
 
-```{r}
+```{r, echo = FALSE}
 library(usmap)
 
 state_plot <- function( state_column, data, title = '% of Charge-Off Loans'){
@@ -144,7 +145,7 @@ state_count_plot <- function( state_column, data, title = 'Number of Occurence i
 }
 ```
 
-```{r}
+```{r, echo = FALSE}
 options(repr.plot.width=7, repr.plot.height=5)
 count_ <- state_count_plot( BorrState, df, title = 'Number of Borrowers in each States')
 percentage_ <- state_plot( BorrState, df, title = '% of Charge-Off Loans based on States of Borrowers')
@@ -153,10 +154,257 @@ plot_grid( count_, percentage_, ncol = 1)
 
 While it is visually significant that loans in some states are more probable to be charged off, it should be noted that most of the loans are associated with business in California. Some states with high percentage of charged-off loans (e.g., Mississippi) are with small sample sizes. The observed high risk of loans may not be a robust measurement because of the large variance in the sampling process.
 
+### `CDC_State`
 
+```{r, echo = FALSE}
+count_ <- state_count_plot( CDC_State, df, title = 'Number of Loans by States of CDC')
+percentage_ <- state_plot( CDC_State, df, title = '% of Charge-Off Loans based on States of CDC')
+plot_grid( count_, percentage_, ncol = 1)
+```
 
+Similar pattern is observed with CDCs' states. It is due to fact that usually small business receive loans from organizations from their own states. This varaible is redundant in machine learning.
 
+### `ThirdPartyLender_State`
 
+```{r, echo = FALSE}
+count_ <- state_count_plot( ThirdPartyLender_State, df, title = 'Number of Loans by States of Third Party Lenders')
+percentage_ <- state_plot( ThirdPartyLender_State, df, title = '% of Charge-Off Loans based on States of Third Party Lenders')
+plot_grid( count_, percentage_, ncol = 1)
+```
 
+States of the third party lenders are potentially associated with charged-off rate with the visually observed difference in terms of the percentage in each state.
 
+### `ApprovalFiscalYear`
+
+```{r, echo = FALSE}
+count_plot( ApprovalFiscalYear, data = df, title = 'Number of Loans Approved in each Fiscal Year', lab = 'Fiscal Year')
+```
+
+```{r, echo = FALSE}
+df |>
+    group_by( ApprovalFiscalYear) |>
+    summarise( chgoff_percentage = round( sum( chgoff) / ( sum( chgoff) + sum( pif)) * 100, 2)) |>
+    ggplot() +
+    aes( x = ApprovalFiscalYear, y = chgoff_percentage) +
+    geom_bar( stat = 'identity') +
+    labs( title = '% of Charged-Off Loans based on Year of Approval', x = 'Year of Approval', y = '% of Charged-Off Loans')
+```
+
+It is observed that more loans were charged off in the year between 2005 to 2009. Still, year of approval will not be a useful feature for us to study the risk of future small business loans.
+
+### `DeliveryMethod`
+
+```{r, echo = FALSE}
+count_plot( ApprovalFiscalYear, data = df, title = 'Number of Loans Approved in each Fiscal Year', lab = 'Fiscal Year')
+```
+
+Delviery methods are mostly 504, ALP, and PCLP. The association between other methods (504 Refinace, 504REFI, and Direct Loans) and chance of a loan being charged off may not be very robust as the sample sizes are relatively smaller.
+
+```{r, echo = FALSE}
+df |>
+    group_by( DeliveryMethod) |>
+    summarise( chgoff_percentage = round( sum( chgoff) / ( sum( chgoff) + sum( pif)) * 100, 2)) |>
+    ggplot() +
+    aes( x = reorder( DeliveryMethod, chgoff_percentage), y = chgoff_percentage) +
+    geom_bar( stat = 'identity') +
+    labs( title = '% of Charged-Off Loans based on Delivery Method of the Loans', x = 'Delivery Method', y = '% of Charged-Off Loans')
+```
+
+It is visually obvious that some delivery methods are associated with lower charged-off rate. This may useful in predict loan risks.
+
+### `NaicsCode`
+
+```{r}
+length( unique( df$NaicsCode))
+```
+
+While there are too many codes in the North American Industry Classification System, we can extract the sectors by using the first 2 digits of each NAICS code.
+
+```{r, echo = FALSE}
+df <- df |>
+    mutate( NaicsSector = substr( as.character( NaicsCode), 1, 2))
+
+count_plot( NaicsSector, df, title = 'Distribution of NAICS Sectors', lab = 'NAICS Sector Code')
+```
+
+Many observations are without NAICS code provided. While the number of occurence of NA is large, it is more appropriate to use NAs as a separate class.
+
+```{r, echo = FALSE}
+df |>
+    group_by( NaicsSector) |>
+    summarise( chgoff_percentage = round( sum( chgoff) / ( sum( chgoff) + sum( pif)) * 100, 2)) |>
+    arrange( NaicsSector) |>
+    ggplot() +
+    aes( x = reorder( NaicsSector, chgoff_percentage), y = chgoff_percentage) +
+    geom_bar( stat = 'identity') +
+    labs( title = '% of Charged-Off Loans based on Sectors', x = 'NAICS Sector Code', y = '% of Charged-Off Loans')
+```
+
+### `FranchiseCode` and `FranchiseName`
+
+```{r}
+df |>
+    group_by( FranchiseCode) |>
+    summarise( percentage = n() / nrow( df) * 100) |>
+    arrange( desc( percentage)) |>
+    head( 3)
+```
+
+```{r}
+df |>
+    group_by( FranchiseName) |>
+    summarise( percentage = n() / nrow( df) * 100) |>
+    arrange( desc( percentage)) |>
+    head( 3)
+```
+
+While most of the of the observations are not associated with any franchise, it may be infeasible to use franchise code or name to prediction loan risk.
+
+```{r, echo = FALSE}
+df |>
+    mutate( franchise = case_when( is.na( FranchiseName) ~ 'No',
+                                    TRUE ~ 'Yes')) |>
+    group_by( franchise) |>
+    summarise( chgoff_percentage = round( sum( chgoff) / ( sum( chgoff) + sum( pif)) * 100, 2)) |>
+    ggplot() +
+    aes( x = reorder( franchise, chgoff_percentage), y = chgoff_percentage) +
+    geom_bar( stat = 'identity') +
+    labs( title = '% of Charged-Off Loans based on if the Loans are associated with Franchises',
+            x = 'With Franchise or Not', y = '% of Charged-Off Loans')
+```
+
+It is possible to that loans associated with existing franchises are with higher chance of being charged off. It can be a useful feature in predicting loan risk.
+
+### `ProjectState`
+
+```{r, echo = FALSE}
+count_ <- state_count_plot( ThirdPartyLender_State, df, title = 'Number of Loans by States of Third Party Lenders')
+percentage_ <- state_plot( ThirdPartyLender_State, df, title = '% of Charge-Off Loans based on States of Third Party Lenders')
+plot_grid( count_, percentage_, ncol = 1)
+```
+
+While borrowers usually use the loans in projects in their own states, the states of the projects will be a redundant information in predicting loan risks
+
+### `BusinessType`
+
+```{r, echo = FALSE}
+count_plot( BusinessType, df, title = 'Distribution of Business Types', lab = 'Business Types')
+```
+
+```{r, echo = FALSE}
+df |>
+    group_by( BusinessType) |>
+    summarise( chgoff_percentage = round( sum( chgoff) / ( sum( chgoff) + sum( pif)) * 100, 2)) |>
+    ggplot() +
+    aes( x = reorder( BusinessType, chgoff_percentage), y = chgoff_percentage) +
+    geom_bar( stat = 'identity') +
+    labs( title = '% of Charged-Off Loans based on Business Types',
+            x = 'Business Type', y = '% of Charged-Off Loans')
+```
+
+Business not providing their business types seem to be more susceptible to be charged-off. Loans for business in partnership seem to have lower charged-off rate. By further inspecting the samples size of each business type, it should be noted that there is only a small amount of business having no business type provided. Still, business type is potentially useful in predicting loan risks.
+
+### `BusinessAge`
+
+```{r, echo = FALSE}
+count_plot( BusinessAge, df, title = 'Distribution of Business Age', lab = 'Business Age', cat_on_x = FALSE)
+```
+
+```{r, echo = FALSE}
+df |>
+    group_by( BusinessAge) |>
+    summarise( chgoff_percentage = round( sum( chgoff) / ( sum( chgoff) + sum( pif)) * 100, 2)) |>
+    ggplot() +
+    aes( y = reorder( BusinessAge, chgoff_percentage), x = chgoff_percentage) +
+    geom_bar( stat = 'identity') +
+    labs( title = '% of Charged-Off Loans based on Business Age',
+            x = 'Business Type', y = '% of Charged-Off Loans')
+```
+
+While business age seems to associated with loan status, there are many null values in the column. This variable will not be useful in prediction loan risky.
+
+### `ThirdPartyDollars`
+
+```{r}
+# Calculating the number of observations without a value for thrid party dollars in the data set
+sum( is.na( df$ThirdPartyDollars)) / nrow( df) * 100
+```
+
+Many observations do not have third party dollars. Imputation will be performed by replace null values with 0.
+
+```{r, echo = FALSE}
+boxplot <- function( column, data, title = '', lab = '', dollar = TRUE){
+    data |>
+        ggplot() +
+        aes( x = {{column}}, y = LoanStatus) +
+        geom_boxplot() +
+        labs( title = title, x = lab, y = 'Loan Status') + {
+            if (dollar)
+                scale_x_continuous( labels = scales::label_dollar(), trans='log10')
+            else {}
+        }
+        
+}
+```
+
+```{r, echo = FALSE, warning = FALSE}
+df <- df |>
+    mutate( ThirdPartyDollars = case_when( is.na( ThirdPartyDollars) ~ 0,
+                                            TRUE ~ ThirdPartyDollars))
+boxplot( ThirdPartyDollars, df, title = 'Distribution of Amount of Third Party Dollar', lab = 'Third Party Dollar')
+```
+
+It is possible that loans that are paid in full amount have received more third party fund. This feature is potentially useful in predicting loan risk. The practicality of using this variable in prediction is questionable as companies may apply for SBA loans before receiving money from third parties. For this project, this variable is considered as a valid predictor temporally.
+
+### `GrossApproval`
+
+```{r, echo = FALSE, warning = FALSE}
+boxplot( GrossApproval, df, title = 'Distribution of Gross Approval', lab = 'Gross Approval')
+```
+
+There is not visually obvious difference between 2 types of loans in terms of the amount approved. In fact, this variable may not be useful in predict risks in practice as the executives should tune the gross amount to be approved based on the risk of the loans.
+
+### `TermInMonths`
+
+```{r, echo = FALSE, warning = FALSE}
+boxplot( TermInMonths, df, title = 'Distribution of Term in Months', lab = 'Term in Months', dollar = FALSE)
+```
+
+No visual difference is observed in terms of term in months. Still, this column can be used in machine learning models with feature selection process applied.
+
+### `GrossChargeOffAmount`
+
+```{r, echo = FALSE, warning = FALSE}
+df |>
+    ggplot() +
+    aes( x = GrossChargeOffAmount) +
+    geom_histogram( bins = 50) +
+    scale_x_continuous( labels = scales::label_dollar(), trans='log10') +
+    labs( title = 'Distribution of Gross Charged-off Amount', x = 'Gross Charged-off Amount', y = 'Count')
+```
+
+This column in the data set will not be used to predict risks as amount charged-off is only known only when a loan is charged off.
+
+### `JobSupported`
+
+```{r, echo = FALSE, warning = FALSE}
+boxplot( JobsSupported, df, title = 'Number of Jobs Supported by Business associated with 2 types of Lonas', lab = 'Jobs Supported', dollar = FALSE)
+```
+
+No visual difference is observed in terms of term in months. Still, this column can be used in machine learning models with feature selection process applied.
+
+## Variable Selection
+
+Summing up, the variables below are selected in the machine learning process to provide insight in small business loan risks and to predict charged-off risk of future loans.
+
+- `LoanStatus` (as the target variable)
+- `BorrState`
+- `DeliveryMethod`
+- `NaicsCode` (with NAICS sectors extracted)
+- `FranchiseCode` (as a binary variable of whether the loan is associated with a franchise)
+- `BusinessType`
+- `BusinessAge`
+- `ThirdPartyDollar`
+- `TermInMonths`
+- `JobSupported`
 
