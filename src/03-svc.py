@@ -39,7 +39,7 @@ def main():
         'best_params': best_params
     }
 
-    with open( '02-model/02-saved-scores/02-svc_dict_tmp.pkl', 'wb') as f:
+    with open( 'src/saved-obj/01-svc_dict_tmp.pkl', 'wb') as f:
         dump( svc_dict, f)
     
     threshold_tuning( pipe_svc_opt, X_train, y_train)

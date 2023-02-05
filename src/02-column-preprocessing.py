@@ -9,6 +9,7 @@ from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.compose import make_column_transformer
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_selection import RFE
+from sklearn.impute import SimpleImputer
 from pickle import dump
 
 def main():
@@ -26,7 +27,7 @@ def main():
     cols = {
         'cols_std':[ 'TermInMonths', 'JobsSupported'],
         'cols_log_std': [ 'ThirdPartyDollars'],
-        'cols_one_hot': [ 'BorrState', 'DeliveryMethod', 'NasicsSector'],
+        'cols_one_hot': [ 'BorrState', 'DeliveryMethod', 'NasicsSector', 'BusinessType'],
         'cols_passthrough': [ 'Franchise']
     }
 
@@ -42,13 +43,13 @@ def preprocess( df):
 def column_transformer_pre_selection( X_train, cols):
     log_transformer = FunctionTransformer( np.log)
     pipe_log_std = make_pipeline(
-        log_transformer, StandardScaler()
+        SimpleImputer( strategy='median'), log_transformer, StandardScaler()
     )
 
     column_transformer_pre = make_column_transformer(
-        ( StandardScaler(), cols[ 'cols_std']),
+        ( make_pipeline( SimpleImputer( strategy='median'), StandardScaler()), cols[ 'cols_std']),
         ( pipe_log_std, cols[ 'cols_log_std']),
-        ( OneHotEncoder(), cols[ 'cols_one_hot']),
+        ( make_pipeline( SimpleImputer( strategy='constant', fill_value = 'NA'), OneHotEncoder( handle_unknown = 'ignore')), cols[ 'cols_one_hot']),
         ( 'passthrough', cols['cols_passthrough'])
     )
     

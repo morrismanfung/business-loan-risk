@@ -11,7 +11,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_selection import RFE
-from sklearn.metrics import classification_report, confusion_matrix, precision_recall_curve
+from sklearn.metrics import classification_report, confusion_matrix, precision_recall_curve, precision_score, recall_score, f1_score
 import seaborn as sns
 import pickle
 import os
@@ -41,7 +41,22 @@ def pr_curve( model, X_train, X_test, y_train, y_test):
 
     return plot_df, chart
 
+def better_confusion_matrix( y_test, y_hat, labels = [ 0, 1]):
+    df = pd.DataFrame( confusion_matrix( y_test, y_hat, labels = labels))
+    df.columns = labels
+    df = pd.concat( [ df], axis = 1, keys = ['Predicted'])
+    df.index = labels
+    df = pd.concat( [df], axis = 0, keys = ['Actual'])
+    return df
 
+
+def test_scoring_metrics( y_test, y_hat, X_test):
+    metrics = {
+        'precision': precision_score( y_test, y_hat),
+        'recall': recall_score( y_test, y_hat),
+        'f1': f1_score( y_test, y_hat)
+    }
+    return metrics
 
 class SVC_thld( SVC):
     def __init__( self, gamma = 'scale', C = 1.0, random_state = None, threshold = None):
