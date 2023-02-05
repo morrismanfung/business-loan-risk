@@ -35,8 +35,8 @@ Morris M. F. Chan
             id="toc-terminmonths"><code>TermInMonths</code></a>
         -   <a href="#grosschargeoffamount"
             id="toc-grosschargeoffamount"><code>GrossChargeOffAmount</code></a>
-        -   <a href="#jobsupported"
-            id="toc-jobsupported"><code>JobSupported</code></a>
+        -   <a href="#jobssupported"
+            id="toc-jobssupported"><code>JobsSupported</code></a>
     -   <a href="#variable-selection" id="toc-variable-selection">Variable
         Selection</a>
 
@@ -320,7 +320,7 @@ process applied.
 This column in the data set will not be used to predict risks as amount
 charged-off is only known only when a loan is charged off.
 
-### `JobSupported`
+### `JobsSupported`
 
 ![](01-eda_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->
 
@@ -344,4 +344,4 @@ charged-off risk of future loans.
 -   `BusinessAge`
 -   `ThirdPartyDollar`
 -   `TermInMonths`
--   `JobSupported`
+-   `JobsSupported`

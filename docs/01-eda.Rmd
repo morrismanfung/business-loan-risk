@@ -385,7 +385,7 @@ df |>
 
 This column in the data set will not be used to predict risks as amount charged-off is only known only when a loan is charged off.
 
-### `JobSupported`
+### `JobsSupported`
 
 ```{r, echo = FALSE, warning = FALSE}
 boxplot( JobsSupported, df, title = 'Number of Jobs Supported by Business associated with 2 types of Lonas', lab = 'Jobs Supported', dollar = FALSE)
@@ -406,5 +406,5 @@ Summing up, the variables below are selected in the machine learning process to 
 - `BusinessAge`
 - `ThirdPartyDollar`
 - `TermInMonths`
-- `JobSupported`
+- `JobsSupported`
 

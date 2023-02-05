@@ -1,0 +1,15 @@
+# Run the command below to install the environment.
+# conda env create -f environment.yml
+name: business-loan-risk
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - ipykernel
+  - pandas
+  - numpy
+  - scikit-learn
+  - altair
+  - altair_saver
+  - seaborn
+  - docopt
