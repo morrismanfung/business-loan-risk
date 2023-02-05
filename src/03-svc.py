@@ -21,8 +21,8 @@ from shortcut import SVC_thld, pr_curve
 def main():
     df_train = pd.read_csv( 'data/train_processed.csv')
     df_test = pd.read_csv( 'data/test_processed.csv')
-    X_train, y_train = df_train.drop( 'LoanStatus', axis = 1), df_train[ 'LoanStatus']
-    X_test, y_test = df_test.drop( 'LoanStatus', axis = 1), df_test[ 'LoanStatus']
+    X_train, y_train = df_train.drop( 'ChargedOff', axis = 1), df_train[ 'ChargedOff']
+    X_test, y_test = df_test.drop( 'ChargedOff', axis = 1), df_test[ 'ChargedOff']
     cv_scoring_metrics = [ 'precision', 'recall', 'f1']
 
     with open( 'src/saved-obj/column-transformer.pkl', 'rb') as f:
@@ -58,6 +58,7 @@ def hyperparameter_optimization( pipe_svc, X_train, y_train):
     random_search_svc = RandomizedSearchCV(
         pipe_svc, param_dist, n_iter = 10, cv = 5, scoring = 'f1', n_jobs=-1, return_train_score = True, random_state = 69
     )
+
     random_search_svc.fit( X_train, y_train)
     return random_search_svc.best_params_
 

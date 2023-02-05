@@ -1,4 +1,4 @@
-# Author: Morris M. F. Chan
+# Author: Morris M. F. Chan918
 # 2023-02-05
 
 import numpy as np
@@ -20,8 +20,8 @@ from shortcut import SVC_thld, better_confusion_matrix, test_scoring_metrics
 def main():
     df_train = pd.read_csv( 'data/train_processed.csv')
     df_test = pd.read_csv( 'data/test_processed.csv')
-    X_train, y_train = df_train.drop( 'LoanStatus', axis = 1), df_train[ 'LoanStatus']
-    X_test, y_test = df_test.drop( 'LoanStatus', axis = 1), df_test[ 'LoanStatus']
+    X_train, y_train = df_train.drop( 'ChargedOff', axis = 1), df_train[ 'ChargedOff']
+    X_test, y_test = df_test.drop( 'ChargedOff', axis = 1), df_test[ 'ChargedOff']
     cv_scoring_metrics = [ 'precision', 'recall', 'f1']
 
     column_transformer = load( 'src/saved-obj/column-transformer.pkl')

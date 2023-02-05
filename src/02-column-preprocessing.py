@@ -38,6 +38,7 @@ def main():
 def preprocess( df):
     df[ 'NasicsSector'] = df[ 'NaicsCode'].astype( str).str[:2].replace( 'na', '00')
     df[ 'Franchise'] = ~df[ 'FranchiseCode'].isna()
+    df[ 'ChargedOff'] = df[ 'LoanStatus'] == 'CHGOFF'
     return df
 
 def column_transformer_pre_selection( X_train, cols):
