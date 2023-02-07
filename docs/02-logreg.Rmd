@@ -1,0 +1,22 @@
+---
+title: 'Statistical Inference: Logistic Regression'
+author: 'Morris M. F. Chan'
+output:
+  github_document:
+    toc: TRUE
+---
+
+# Statistical Inference: Logistic Regression
+
+Logistic regression is first performed on the selected variables from the data set to provide insight for possible machine learning algorithms (if any).
+
+```{r, warning=FALSE}
+library( tidyverse)
+df <- read_csv( '../data/train_processed.csv')
+
+model <- glm( as.factor( ChargedOff) ~ BorrState + DeliveryMethod + NasicsSector + Franchise + BusinessAge + ThirdPartyDollars + TermInMonths + JobsSupported, data = df, family = 'binomial')
+
+summary( model)
+```
+
+It can be seen that none of the coefficients are statistically significant with the likelihood of a loan being charged-off. Given the large sample size, small standard scores suggest there are only neglectable associations between the selected features and the risk of a loan being charged-off. Unfortunately, it is deemed meaningless to continue the project using more advanced models or algorithms. A close inspection on the original [article](https://www.tandfonline.com/doi/full/10.1080/10691898.2018.1434342) will reveal that the high accuracy observed in the suggested workflow is only significant because of variables manually added by the authors for the sake of the project as a school assignment.
